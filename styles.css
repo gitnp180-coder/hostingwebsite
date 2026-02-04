@@ -585,7 +585,7 @@ body.light-mode .submit-btn {
 .dashboard-page {
     display: none;
     width: 100%;
-    min-height: 85vh;
+    min-height: 90vh;
     opacity: 0;
     animation: fadeIn 0.8s ease forwards;
 }
@@ -594,7 +594,7 @@ body.light-mode .submit-btn {
     background-color: white;
     border-radius: 20px;
     box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
-    width: 85vw;            /* changed to 90% of viewport width */
+    width: 30vw;            /* changed to 90% of viewport width */
     max-width: 1400px;      /* safety cap (unchanged behavior except larger cap) */
     min-width: 360px;       /* ensure readable on medium screens */
     padding: 40px;
