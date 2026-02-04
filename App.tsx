@@ -1,9 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
 import { Reflection, VIBES, Postcard } from './types';
-import ReflectionCard from './components/ReflectionCard';
-import PostcardDisplay from './components/PostcardDisplay';
-import { generatePostcard } from './services/geminiService';
 
 const App: React.FC = () => {
   const [text, setText] = useState('');
@@ -12,31 +8,24 @@ const App: React.FC = () => {
   const [selectedPostcard, setSelectedPostcard] = useState<Postcard | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Load from local storage on mount
   useEffect(() => {
     const saved = localStorage.getItem('mina_reflections');
     if (saved) {
-      try {
-        setReflections(JSON.parse(saved));
-      } catch (e) {
-        console.error("Failed to load history");
-      }
+      try { setReflections(JSON.parse(saved)); } catch (e) { console.error(e); }
     }
   }, []);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (!text.trim()) return;
-
-    const newReflection: Reflection = {
+    const newRef = {
       id: Math.random().toString(36).substr(2, 9),
       text: text.trim(),
       vibe: activeVibe.name,
       gradient: activeVibe.color,
       timestamp: Date.now(),
     };
-
-    const updated = [newReflection, ...reflections];
+    const updated = [newRef, ...reflections];
     setReflections(updated);
     localStorage.setItem('mina_reflections', JSON.stringify(updated));
     setText('');
@@ -48,134 +37,81 @@ const App: React.FC = () => {
     localStorage.setItem('mina_reflections', JSON.stringify(updated));
   };
 
-  const handleGeneratePostcard = async (reflection: Reflection) => {
+  const handleGenerate = (reflection: Reflection) => {
     setIsGenerating(true);
-    setSelectedPostcard(null);
-    try {
-      const postcard = await generatePostcard(reflection);
-      setSelectedPostcard(postcard);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } catch (error) {
-      console.error("Generation failed:", error);
-      alert("The manifestation engine encountered a quiet moment. Please try again soon.");
-    } finally {
+    setTimeout(() => {
+      setSelectedPostcard({
+        destination: `The Land of ${reflection.vibe}`,
+        message: `Your thought: "${reflection.text}" has found its home.`,
+        imageUrl: ""
+      });
       setIsGenerating(false);
-    }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 1000);
   };
 
   return (
-    <div className="min-h-screen bg-[#fafaf9] text-slate-900 pb-24 selection:bg-indigo-100">
-      {/* Decorative Header */}
-      <nav className="pt-16 pb-12 px-8 text-center">
-        <h1 className="text-5xl font-serif italic tracking-tight text-slate-800">Mina</h1>
+    <div className="min-h-screen bg-[#fafaf9] text-slate-800 pb-20">
+      <nav className="pt-20 pb-12 text-center">
+        <h1 className="text-5xl font-serif italic">Mina</h1>
         <div className="h-px w-12 bg-slate-200 mx-auto mt-4"></div>
       </nav>
 
       <main className="max-w-4xl mx-auto px-6">
-        {/* Postcard View */}
-        {isGenerating && (
-          <div className="mb-20 text-center py-12 animate-pulse">
-            <p className="text-xl font-serif italic text-slate-400">Capturing the essence of your thought...</p>
+        {selectedPostcard && (
+          <div className="mb-20 p-10 bg-white rounded-3xl shadow-sm border border-slate-100 text-center">
+             <h2 className="font-serif italic text-4xl mb-4">{selectedPostcard.destination}</h2>
+             <p className="text-slate-500 mb-8">{selectedPostcard.message}</p>
+             <button onClick={() => setSelectedPostcard(null)} className="text-xs uppercase tracking-widest font-bold text-slate-400 hover:text-slate-800">Close Postcard</button>
           </div>
         )}
 
-        {selectedPostcard && !isGenerating && (
-          <div className="mb-24 animate-in fade-in zoom-in duration-700">
-             <div className="flex justify-between items-center mb-6">
-                <h2 className="text-[10px] uppercase tracking-[0.4em] font-bold text-slate-400">Manifestation Result</h2>
-                <button 
-                  onClick={() => setSelectedPostcard(null)}
-                  className="text-[10px] uppercase tracking-[0.2em] font-bold text-slate-400 hover:text-slate-800 transition-colors"
-                >
-                  Close Postcard
-                </button>
-             </div>
-             <PostcardDisplay postcard={selectedPostcard} />
-          </div>
-        )}
-
-        {/* Entry Section */}
         {!selectedPostcard && (
-          <section className="mb-20">
-            <form onSubmit={handleSave} className="max-w-xl mx-auto space-y-8">
-              <div className="text-center space-y-2">
-                <h2 className="text-xs uppercase tracking-[0.3em] font-semibold text-slate-400">What is on your mind?</h2>
+          <section className="mb-20 text-center">
+            <form onSubmit={handleSave} className="max-w-xl mx-auto space-y-10">
+              <div className="space-y-4">
+                <h3 className="text-xs uppercase tracking-[0.3em] font-semibold text-slate-400">What is on your mind?</h3>
                 <textarea 
                   value={text}
                   onChange={(e) => setText(e.target.value)}
-                  placeholder="Write an intention or a quiet thought..."
+                  placeholder="Write a quiet thought..."
                   className="w-full bg-transparent border-b border-slate-200 focus:border-slate-800 outline-none py-4 text-2xl font-serif italic text-center transition-colors placeholder:text-slate-200 resize-none"
                   rows={2}
                 />
               </div>
 
               <div className="space-y-4">
-                <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-slate-400 text-center">Choose your Aura</h3>
-                <div className="flex flex-wrap justify-center gap-3">
+                <h3 className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Choose your Aura</h3>
+                <div className="flex justify-center gap-3">
                   {VIBES.map((v) => (
-                    <button
-                      key={v.name}
-                      type="button"
-                      onClick={() => setActiveVibe(v)}
-                      className={`w-8 h-8 rounded-full transition-all duration-300 ring-offset-4 ${activeVibe.name === v.name ? 'ring-2 ring-slate-400 scale-110' : 'hover:scale-110'}`}
-                      style={{ background: v.color }}
-                      title={v.name}
-                    />
+                    <button key={v.name} type="button" onClick={() => setActiveVibe(v)} className={`w-8 h-8 rounded-full transition-all ${activeVibe.name === v.name ? 'ring-2 ring-slate-400 scale-125' : 'hover:scale-110'}`} style={{ background: v.color }} />
                   ))}
                 </div>
-                <p className="text-center text-[10px] text-slate-400 uppercase tracking-widest h-4">
-                  {activeVibe.name}
-                </p>
+                <p className="text-[10px] text-slate-400 uppercase tracking-widest">{activeVibe.name}</p>
               </div>
 
-              <div className="flex justify-center pt-4">
-                <button 
-                  type="submit"
-                  disabled={!text.trim()}
-                  className={`px-10 py-3 rounded-full font-serif text-lg tracking-wide transition-all border ${
-                    text.trim() 
-                    ? 'border-slate-800 text-slate-800 hover:bg-slate-800 hover:text-white active:scale-95 shadow-sm' 
-                    : 'border-slate-100 text-slate-300 cursor-not-allowed'
-                  }`}
-                >
-                  Save Reflection
-                </button>
-              </div>
+              <button type="submit" disabled={!text.trim()} className="px-12 py-3 rounded-full border border-slate-800 hover:bg-slate-800 hover:text-white transition-all disabled:opacity-20 font-serif">
+                Save Reflection
+              </button>
             </form>
           </section>
         )}
 
-        {/* Gallery Section */}
-        {reflections.length > 0 ? (
-          <section className="animate-in fade-in slide-in-from-bottom-4 duration-1000">
-             <div className="flex items-center gap-4 mb-8">
-                <div className="h-px bg-slate-200 flex-grow"></div>
-                <h2 className="font-serif italic text-slate-400 text-xl">Your Path</h2>
-                <div className="h-px bg-slate-200 flex-grow"></div>
-             </div>
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-               {reflections.map((reflection) => (
-                 <ReflectionCard 
-                   key={reflection.id} 
-                   reflection={reflection} 
-                   onDelete={deleteReflection}
-                   onGenerate={() => handleGeneratePostcard(reflection)}
-                 />
-               ))}
-             </div>
-          </section>
-        ) : (
-          <div className="text-center py-20">
-            <p className="text-slate-300 font-serif italic text-xl">Your quiet space is waiting...</p>
+        {reflections.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {reflections.map(r => (
+              <div key={r.id} className="p-8 bg-white rounded-2xl border border-slate-100 shadow-sm space-y-4">
+                <div className="h-1 w-8 rounded-full" style={{ background: r.gradient }}></div>
+                <p className="font-serif italic text-lg text-slate-600">"{r.text}"</p>
+                <div className="flex justify-between items-center pt-4 border-t border-slate-50">
+                  <button onClick={() => handleGenerate(r)} className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Manifest</button>
+                  <button onClick={() => deleteReflection(r.id)} className="text-[10px] font-bold text-red-200 uppercase tracking-widest">Delete</button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </main>
-
-      <footer className="mt-40 text-center pb-12">
-        <p className="text-[10px] uppercase tracking-[0.4em] text-slate-300">
-          Mina • A Private Reflection Space
-        </p>
-      </footer>
     </div>
   );
 };
